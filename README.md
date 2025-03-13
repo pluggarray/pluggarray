@@ -16,7 +16,7 @@ The `Pluger` class provides a flexible and extensible array container that allow
 To install the `Pluger` class, use Composer:
 
 ```bash
-composer require exrray/plug
+composer require pluggarray/pluggarray
 ```
 
 ### Usage
