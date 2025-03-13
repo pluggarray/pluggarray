@@ -2,7 +2,7 @@
 namespace PluggArray\Plugin;
 
 
-class Context implements PluginInterface
+class ExamplePlugin implements PluginInterface
 {
     const PATTERN = '/\${(.*?)}/'; // Match ${...}
     
