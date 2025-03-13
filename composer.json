@@ -11,8 +11,7 @@
         }
     ],
     "require": {
-        "php": ">=8.0",
-        "dot-array/dot-array": "^1.0"
+        "php": ">=8.0"
     },
     "autoload": {
         "psr-4": {
@@ -26,7 +25,8 @@
         }
     },
     "suggest": {
-	"dot-array/dot-array": "Pluggable array",
-	"jsonyx/jsonyx": "Extended JSON parser with plugins. Use context variables, includes, .env, imports and custom plugins"
+        "exrray/exrray": "Array API",
+        "dotaccess/dotarray": "DOT-Accessable array",
+        "jsonyx/jsonyx": "Extended JSON parser with plugins. Use context variables, includes, .env, imports and custom plugins"
     }
 }
