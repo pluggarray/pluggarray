@@ -1,6 +1,7 @@
 <?php
 namespace PluggArray;
 
+use AA\Api;
 use PluggArray\Plugin\PluginInterface;
 
 /**
@@ -37,6 +38,7 @@ use PluggArray\Plugin\PluginInterface;
 class PluggArray implements PluggArrayInterface
 {
     private array $plugins = [];
+    private ?array $sortedPlugins = null;
     private $callStack = null;
 
     /**
@@ -45,12 +47,32 @@ class PluggArray implements PluggArrayInterface
     public function register(PluginInterface|callable $plugin, int $priority = 0): static
     {
         $this->plugins[$priority][get_class($plugin)] = $plugin;
-
         $this->callStack = null;
+        $this->sortedPlugins = null;
 
-        krsort($this->plugins);
+        $this->sortPlugins();
 
         return $this;
+    }
+
+    /**
+     * Sort the plugins
+     * 
+     * @return static
+     */
+    protected function sortPlugins(): array
+    {
+        ksort($this->plugins);
+
+        $this->sortedPlugins = [];
+
+        foreach ($this->plugins as $priority => &$plugins) {
+            foreach ($plugins as $plugin) {
+                $this->sortedPlugins[] = $plugin;
+            }
+        }
+
+        return $this->sortedPlugins = array_reverse($this->sortedPlugins);
     }
 
     /**
@@ -86,12 +108,7 @@ class PluggArray implements PluggArrayInterface
             if (is_array($value)) {
                 $this->plug($value, $dataRef, $curPath);
             } else {
-
-                $value = $pluginStack(
-                    $value,
-                    $curPath,
-                    $dataRef
-                );
+                $value = $pluginStack($value, $curPath, $dataRef);
             }
         }
 
@@ -104,6 +121,8 @@ class PluggArray implements PluggArrayInterface
     public function resolve(array &$data, ?string $path = null): static
     {
      
+        
+
         foreach ($data as $key => &$value) {
             $curPath = $path ? "{$path}.{$key}" : $key;
 
@@ -139,34 +158,40 @@ class PluggArray implements PluggArrayInterface
      */
     protected function callStack(): callable
     {
-        $plugins = $this->getSortedPlugins();
-
         return fn (mixed $value, string $path, array &$dataRef) =>
-            function () use ($value, $path, &$dataRef, $plugins) {  
-                $next = fn($value, $path, &$dataRef) => $value;
-                foreach ($plugins as $plugin) {
-                    $prev = $next;
-                    $next = fn ($value, $path, &$dataRef) => $plugin($value, $path, $dataRef, $prev);
-                }
-                return $next($value, $path, $dataRef);
+            function () use ($value, $path, &$dataRef) {
+                return Api::reduce(
+                    $this->getPlugins(),
+                    fn ($next, $plugin) =>
+                        fn ($value, $path, &$dataRef) =>
+                            $plugin(is_callable($value) ? $value() : $value, $path, $dataRef, $next),
+                    fn ($value, $path, &$dataRef) => $value
+                )($value, $path, $dataRef);
             };
     }
+    // protected function callStack(): callable
+    // {
+    //     return fn (mixed $value, string $path, array &$dataRef) =>
+    //         function () use ($value, $path, &$dataRef) {
+    //             return array_reduce(
+    //                 $this->getPlugins(),
+    //                 fn ($next, $plugin) =>
+    //                     fn ($value, $path, &$dataRef) =>
+    //                         $plugin(is_callable($value) ? $value() : $value, $path, $dataRef, $next),
+    //                 fn ($value, $path, &$dataRef) => $value
+    //             )($value, $path, $dataRef);
+    //         };
+    // }
 
     /**
-     * Get the sorted plugins
+     * Get the plugins
      * 
      * @return array
      */
-    protected function getSortedPlugins(): array
+    protected function getPlugins(): array
     {
-        $sortedPlugins = [];
-        foreach ($this->plugins as $priority => $plugins) {
-            foreach ($plugins as $plugin) {
-                $sortedPlugins[] = $plugin;
-            }
-        }
-
-        return $sortedPlugins;
+        return $this->sortedPlugins ??= $this->sortPlugins();
     }
 
+   
 }
